@@ -19,11 +19,11 @@ class Game(models.Model):
 
 
 class Round(models.Model):
-    number = models.IntegerField()
+    number = models.IntegerField(default=1)
     is_current = models.BooleanField(default=True)
-    who_starts = models.IntegerField()
-    points_in_game = models.IntegerField()
-    points_being_raised = models.IntegerField()
+    who_starts = models.IntegerField(default=1)
+    points_in_game = models.IntegerField(default=1)
+    points_being_raised = models.IntegerField(default=1)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
 
 
@@ -34,14 +34,15 @@ class Hand(models.Model):
         Player2Win = 3
         Draw = 4
 
-    number = models.IntegerField()
+    number = models.IntegerField(default=1)
     is_current = models.BooleanField(default=True)
-    result = models.IntegerField(choices=HandResult.choices)
+    result = models.IntegerField(choices=HandResult.choices, default=HandResult.Playing)
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
 
 
 class PlayerCard(models.Model):
     card = models.CharField(max_length=2)
     played = models.BooleanField(default=False)
+    round = models.ForeignKey(Round, on_delete=models.CASCADE)
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     hand = models.ForeignKey(Hand, on_delete=models.CASCADE, null=True)
