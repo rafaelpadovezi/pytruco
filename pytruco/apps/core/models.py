@@ -19,6 +19,11 @@ class Game(models.Model):
 
 
 class Round(models.Model):
+    class Result(models.IntegerChoices):
+        Playing = 1
+        Player1Win = 2
+        Player2Win = 3
+
     number = models.IntegerField(default=1)
     is_current = models.BooleanField(default=True)
     who_starts = models.IntegerField(default=1)
@@ -28,7 +33,7 @@ class Round(models.Model):
 
 
 class Hand(models.Model):
-    class HandResult(models.IntegerChoices):
+    class Result(models.IntegerChoices):
         Playing = 1
         Player1Win = 2
         Player2Win = 3
@@ -36,7 +41,7 @@ class Hand(models.Model):
 
     number = models.IntegerField(default=1)
     is_current = models.BooleanField(default=True)
-    result = models.IntegerField(choices=HandResult.choices, default=HandResult.Playing)
+    result = models.IntegerField(choices=Result.choices, default=Result.Playing)
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
 
 
