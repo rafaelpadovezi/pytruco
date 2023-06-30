@@ -8,6 +8,8 @@ services:
   app:
     build: *dockerfile-dev-build
     env_file: .env
+    volumes:
+      - .:/app
     ports:
       - "8000:8000"
     command: [
