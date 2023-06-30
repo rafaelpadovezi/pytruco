@@ -142,3 +142,23 @@ class GameActionsViewTest(TestCase):
             round__id=db_game.round_set.get().id, player__id=player2_id, played=True
         )
         self.assertEqual(played_card.card, "A♦")
+
+    def test_should_compute_round_when_all_players_played(self):
+        # arrange
+        (game_id, player1_id, player2_id) = create_brand_new_game()
+
+        client = Client()
+        client.post(f"/v1/game/{player1_id}/play", {"card": "6♥"})
+        client.post(f"/v1/game/{player2_id}/play", {"card": "A♦"})
+        client.post(f"/v1/game/{player2_id}/play", {"card": "7♦"})
+
+        # act
+        response = client.post(f"/v1/game/{player1_id}/play", {"card": "2♥"})
+
+        # assert
+        self.assertEqual(response.status_code, 200)
+        db_game = Game.objects.get(id=game_id)
+        self.assertEqual(db_game.points_player1, 0)
+        self.assertEqual(db_game.points_player2, 1)
+        self.assertEqual("End of round. 3", db_game.last_action)
+        self.assertEqual("Player 2 turn", db_game.next_action)

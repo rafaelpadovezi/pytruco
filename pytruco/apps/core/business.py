@@ -1,6 +1,6 @@
 import random
 
-from pytruco.apps.core.models import Game, Hand
+from pytruco.apps.core.models import Hand, Player, PlayerCard, Round
 
 
 class Card:
@@ -49,48 +49,59 @@ class Deck:
         return self.cards.pop()
 
 
-class GameState:
-    number_of_players = 2
-    game_started_state = "Game started"
+class GameRules:
+    @staticmethod
+    def get_hand_and_round_result(
+        player1_card: str, player2_card: str, hands
+    ) -> tuple[int, int]:
+        round_result = Round.Result.Playing
+        if Card(player1_card).get_rank() > Card(player2_card).get_rank():
+            hand_result = Hand.Result.Player1Win
+            victory_condition = (
+                hands.filter(result=Hand.Result.Player1Win).count() + 1 == 2
+                or hands.get(number=1).result == Hand.Result.Draw
+            )
+            if victory_condition:
+                round_result = Round.Result.Player1Win
+
+        elif Card(player1_card).get_rank() < Card(player2_card).get_rank():
+            hand_result = Hand.Result.Player2Win
+            victory_condition = (
+                hands.filter(result=Hand.Result.Player2Win).count() + 1 == 2
+                or hands.get(number=1).result == Hand.Result.Draw
+            )
+            if victory_condition:
+                round_result = Round.Result.Player2Win
+
+        else:
+            hand_result = Hand.Result.Draw
+            if hands.count() > 1:
+                first_hand_result = hands.get(number=1).result
+                if first_hand_result is Hand.Result.Player1Win:
+                    round_result = Round.Result.Player1Win
+                elif first_hand_result is Hand.Result.Player2Win:
+                    round_result = Round.Result.Player1Win
+                else:
+                    raise Exception("Not implemented yet!")
+        return round_result, hand_result
 
     @staticmethod
-    def raise_state(player_number, points):
-        return f"Player {player_number} raised to {points}"
+    def draw_player_cards_for_the_round(
+        round: Round, player1: Player, player2: Player
+    ) -> list[PlayerCard]:
+        deck = Deck()
+        deck.shuffle()
 
-    @staticmethod
-    def response_state(player_number):
-        return f"Player {player_number} must respond"
+        players_cards = []
+        for i in range(1, 4):
+            card = deck.draw()
+            players_cards.append(
+                PlayerCard(player=player1, card=str(card), round=round)
+            )
 
-    @staticmethod
-    def truco_state(player_number):
-        return f"Player {player_number} asked truco"
-
-    @staticmethod
-    def player_turn_state(player_number):
-        return f"Player {player_number} turn"
-
-    @staticmethod
-    def accepted_state(player_number):
-        return f"Player {player_number} accepted"
-
-    @staticmethod
-    def end_of_hand_state(result: Hand.Result):
-        return f"End of hand. {result}"
-
-    @staticmethod
-    def is_player_turn(game: Game, player_id: int) -> bool:
-        if (
-            game.player1.id == player_id
-            and game.next_action == GameState.player_turn_state(1)
-        ):
-            return True
-        if (
-            game.player2.id == player_id
-            and game.next_action == GameState.player_turn_state(2)
-        ):
-            return True
-        return False
-
-    @staticmethod
-    def end_of_round_state(result: int) -> str:
-        return f"Enf of round. {result}"
+        for i in range(1, 4):
+            card = deck.draw()
+            players_cards.append(
+                PlayerCard(player=player2, card=str(card), round=round)
+            )
+        return players_cards

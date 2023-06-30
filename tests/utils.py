@@ -1,4 +1,4 @@
-from pytruco.apps.core.business import GameState
+import pytruco.apps.core.game_state as game_state
 from pytruco.apps.core.models import Game, Hand, Player, PlayerCard, Round
 
 
@@ -8,8 +8,8 @@ def create_brand_new_game():
     game = Game(
         player1=player1,
         player2=player2,
-        last_action=GameState.game_started_state,
-        next_action=GameState.player_turn_state(1),
+        last_action=game_state.game_started_state,
+        next_action=game_state.player_turn_state(1),
     )
     round = Round(game=game)
     hand = Hand(round=round)
