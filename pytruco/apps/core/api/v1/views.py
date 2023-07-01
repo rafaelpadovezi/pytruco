@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
@@ -12,7 +13,8 @@ from pytruco.apps.core.models import Game, Hand, Player, PlayerCard, Round
 from pytruco.apps.core.serializers import PlaySerializer
 
 
-class GameView(APIView):
+class CreateGameView(APIView):
+    @extend_schema(request=None)
     def post(self, request: Request) -> Response:
         deck = Deck()
         deck.shuffle()
@@ -48,43 +50,45 @@ class GameView(APIView):
             }
         )
 
-    def get(self, request: Request, id: int) -> Response:
-        try:
-            game: Game = Game.objects.get(id=id)
-        except Game.DoesNotExist:
-            return Response({}, status=status.HTTP_404_NOT_FOUND)
-        round: Round = game.round_set.get(is_current=True)
-        player_cards = PlayerCard.objects.filter(round__id=round.id, played=True)
-        hands: list[Hand] = round.hand_set.all()
-        hands_result = []
-        for hand in hands:
-            hands_result.append(
-                {
-                    "number": hand.number,
-                    "CardPlayer1": [
-                        x.card
-                        for x in player_cards
-                        if x.player.id == game.player1.id and x.hand == hand
-                    ],
-                    "CardPlayer2": [
-                        x.card
-                        for x in player_cards
-                        if x.player.id == game.player2.id and x.hand == hand
-                    ],
-                    "result": hand.result,
-                }
-            )
-        return Response(
+
+@api_view(["GET"])
+def get_game_state(self, request: Request, id: int) -> Response:
+    try:
+        game: Game = Game.objects.get(id=id)
+    except Game.DoesNotExist:
+        return Response({}, status=status.HTTP_404_NOT_FOUND)
+    round: Round = game.round_set.get(is_current=True)
+    player_cards = PlayerCard.objects.filter(round__id=round.id, played=True)
+    hands: list[Hand] = round.hand_set.all()
+    hands_result = []
+    for hand in hands:
+        hands_result.append(
             {
-                "number": round.number,
-                "points": round.points_in_game,
-                "hands": hands_result,
-                "pointsPlayer1": game.points_player1,
-                "pointsPlayer2": game.points_player2,
-                "lastAction": game.last_action,
-                "nextAction": game.next_action,
+                "number": hand.number,
+                "CardPlayer1": [
+                    x.card
+                    for x in player_cards
+                    if x.player.id == game.player1.id and x.hand == hand
+                ],
+                "CardPlayer2": [
+                    x.card
+                    for x in player_cards
+                    if x.player.id == game.player2.id and x.hand == hand
+                ],
+                "result": hand.result,
             }
         )
+    return Response(
+        {
+            "number": round.number,
+            "points": round.points_in_game,
+            "hands": hands_result,
+            "pointsPlayer1": game.points_player1,
+            "pointsPlayer2": game.points_player2,
+            "lastAction": game.last_action,
+            "nextAction": game.next_action,
+        }
+    )
 
 
 @api_view(["GET"])
@@ -105,6 +109,7 @@ def cards(request: Request, player_id: int) -> Response:
     return Response(result)
 
 
+@extend_schema(request=PlaySerializer)
 @api_view(["POST"])
 def play(request: Request, player_id: int) -> Response:
     try:
